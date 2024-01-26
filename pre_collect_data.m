@@ -6,18 +6,13 @@ clc; close all; clear;
 addpath('_fcn');
 addpath('_data');
 
+
+% ------------------------------------------
+% Simulation Parameters 
+% ------------------------------------------
 % How many data sets to collect
-% data_total_number = 100;
-% h_wait = waitbar(0, 'please wait');
-
-% -------------------------------------------------------------------------
-%   Parameter setup
-% -------------------------------------------------------------------------
-
-% Type for HDV car-following model
-hdv_type        = 1;    % 1. OVM   2. IDM
-% Uncertainty for HDV behavior
-acel_noise      = 0.1;  % A white noise signal on HDV's original acceleration
+data_total_number = 10;
+h_wait = waitbar(0, 'please wait');
 
 % Parameters in Simulation
 total_time       = 40;              % Total Simulation Time
@@ -44,24 +39,16 @@ lambda_y        = 1e4;      % penalty on ||sigma_y||_2^2 in objective
 % ------------------------------------------
 % Parameters in Mixed Traffic
 % ------------------------------------------
-load('ID_LargeScale.mat'); % record ID
-ID_str      = num2str(ID);
-ID_str(find(ID_str==' ')) = '';
-n2          = 10;                   % number of vehicles from other lanes
-ID1         = ID(1:(length(ID) - n2));
-ID2         = ID((length(ID) - n2 + 1) : end);
+N = 100;  % number of total vehicles
+M = 10;   % number of CAVs
+% Type for HDV car-following model
+hdv_type        = 1;    % 1. OVM   2. IDM
+% Uncertainty for HDV behavior
+acel_noise      = 0.1;  % A white noise signal on HDV's original acceleration
 
-pos1_cav    = find(ID1==1);          % position of CAVs
-n1_vehicle  = length(ID) - n2;           % number of vehicles
-n1_cav      = length(pos1_cav);      % number of CAVs
-n1_hdv      = n1_vehicle - n1_cav;   % number of HDVs
-
-pos2_cav    = find(ID2==1);          % position of CAVs
-n2_vehicle  = n2;                    % number of vehicles
-n2_cav      = length(pos2_cav);      % number of CAVs
-n2_hdv      = n2_vehicle - n2_cav;   % number of HDVs
-
-mix         = 1;                    % whether mixed traffic flow
+ID = generate_mixed_traffic_flow(N, M);
+Omega   = find(ID==0);
+Omega_c = find(ID==1);
 
 v_star      = 15;                   % Equilibrium velocity
 s_star      = 20;                   % Equilibrium spacing for CAV
@@ -69,70 +56,22 @@ s_star      = 20;                   % Equilibrium spacing for CAV
 acel_max = 2;
 dcel_max = -5;
 
-% Random setup for OVM
-load(['_data/hdv_ovm_random_largescale.mat']);
-% Initialize two empty structs
-hdv_parameter1 = struct();
-hdv_parameter2 = struct();
+% Random setup for HDV
+hdv_parameter = generate_HDVs(N);
 
-% Loop through the fields of the input struct
-fields = fieldnames(hdv_parameter);
-for i = 1:numel(fields)
-    field = fields{i};
-    data = hdv_parameter.(field);
-    
-    % Check if the field is a vector
-    if isvector(data)
-        n = length(data);
-        if n > n2
-            % Separate the vector into two parts, n-n2 and n2
-            hdv_parameter1.(field) = data(1:(n - n2));
-            hdv_parameter2.(field) = data((n - n2 + 1):end);
-        else
-            % If the vector has 10 or fewer elements, include it in both structs
-            hdv_parameter1.(field) = data;
-            hdv_parameter2.(field) = data;
-        end
-    else
-        % If the field is not a vector, include it in both structs
-        hdv_parameter1.(field) = data;
-        hdv_parameter2.(field) = data;
-    end
-end
-    
-% What is measurable
-measure_type = 3;
-% 1. Only the velocity errors of all the vehicles are measurable;
-% 2. All the states, including velocity error and spacing error are measurable;
-% 3. Velocity error and spacing error of the CAVs are measurable, 
-%    and the velocity error of the HDVs are measurable.
 
 % ------------------
 %  size in DeeP-LCC
 % ------------------
 
-n1_ctr = 2 * n1_vehicle;    % number of state variables
-m1_ctr = n1_cav;          % number of input variables
-switch measure_type     % number of output variables
-    case 1
-        p1_ctr = n1_vehicle;
-    case 2
-        p1_ctr = 2 * n1_vehicle;
-    case 3
-        p1_ctr = n1_vehicle + n1_cav;
-end
+n_ctr = 2 * N; % number of state variables
+m_ctr = M;     % number of input variables
+p_ctr = N + M; % number of output variables
 
-n2_ctr = 2 * n2_vehicle;    % number of state variables
-m2_ctr = n2_cav;          % number of input variables
-switch measure_type     % number of output variables
-    case 1
-        p2_ctr = n2_vehicle;
-    case 2
-        p2_ctr = 2 * n2_vehicle;
-    case 3
-        p2_ctr = n2_vehicle + n2_cav;
-end
-
+% -------------------------------------------------------------------------
+%   Scenario initialization
+%--------------------------------------------------------------------------
+% TODO: !!!
 for i_data = 1:data_total_number
     % -------------------------------------------------------------------------
     %   Scenario initialization
