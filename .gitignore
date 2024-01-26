@@ -14,7 +14,6 @@
 *.swp
 *.pyc
 *.bag
-*.mat
 
 # Ignore build, devel, and logs folder
 build
@@ -22,6 +21,4 @@ devel
 logs
 docs
 __pycache__
-.catkin_tools
-.catkin_workspace
 .vscode
