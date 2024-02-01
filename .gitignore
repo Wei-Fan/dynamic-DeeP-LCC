@@ -14,6 +14,8 @@
 *.swp
 *.pyc
 *.bag
+*_tmp.mat
+*.asv
 
 # Ignore build, devel, and logs folder
 build

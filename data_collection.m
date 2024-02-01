@@ -7,8 +7,8 @@ addpath('_fcn');
 addpath('_data');
 
 % How many data sets to collect
-% data_total_number = 100;
-% h_wait = waitbar(0, 'please wait');
+data_total_number = 100;
+h_wait = waitbar(0, 'please wait');
 
 % -------------------------------------------------------------------------
 %   Parameter setup
