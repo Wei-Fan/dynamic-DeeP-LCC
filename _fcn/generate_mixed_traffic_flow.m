@@ -8,7 +8,7 @@ function ID = generate_mixed_traffic_flow(n, m)
     
     % Step 1: Create the vector
     % Initialize a vector with m ones and n-m zeros
-    ID = [ones(1, m), zeros(1, n - m)];
+    ID = [ones(m, 1); zeros(n - m, 1)];
     
     % Step 2: Shuffle the vector
     % Generate a random permutation of the vector

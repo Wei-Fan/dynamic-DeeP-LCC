@@ -48,6 +48,7 @@ hdv_type        = 1;    % 1. OVM   2. IDM
 acel_noise      = 0.1;  % A white noise signal on HDV's original acceleration
 
 ID = generate_mixed_traffic_flow(n, m);
+
 Omega   = find(ID==0);
 Omega_c = find(ID==1);
 
@@ -57,9 +58,12 @@ s_star      = 20;                   % Equilibrium spacing for CAV
 acel_max = 2;
 dcel_max = -5;
 
+save(['.\_data\ID_',trial_name,'_n_',num2str(n),'_tmp.mat'],'ID','acel_noise','v_star','s_star');
+
 % Random setup for HDV
 hdv_parameter = generate_HDVs(n);
 
+save(['.\_data\hdv_',trial_name,'_n_',num2str(n),'_tmp.mat'],'hdv_type','hdv_parameter');
 
 % ------------------
 %  size in DeeP-LCC
@@ -106,7 +110,7 @@ for i_data = 1:data_total_number
         
         S(k,1,3)            = 0;         % the head vehicle
         S(k,2:end,3)        = acel;      % all the vehicles using HDV model
-        S(k,Omega_c + 1,3) = ud(:,k);   % the CAVs
+        S(k,Omega_c + 1,3) = ud(:,k);    % the CAVs
         
         S(k+1,:,2) = S(k,:,2) + Tstep * S(k,:,3);
         S(k+1,1,2) = ed(k) + v_star;   % the velocity of the head vehicle
@@ -138,8 +142,8 @@ for i_data = 1:data_total_number
     str=['Processing...',num2str(i_data/data_total_number*100),'%'];
     waitbar(i_data/data_total_number, h_wait, str);
 
-    save_data = {hdv_type,acel_noise,Up,Yp,Uf,Yf,Ep,Ef,T,Tini,N,ID,Tstep,v_star};
-    save(['.\_data\trajectory_data_collection\',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],"save_data");
+    save(['.\_data\trajectory_data_collection\',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
+        'Up','Yp','Uf','Yf','Ep','Ef','T','Tini','N','Tstep');
 
 end
 
