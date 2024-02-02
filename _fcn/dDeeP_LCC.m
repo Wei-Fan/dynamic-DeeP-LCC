@@ -59,20 +59,18 @@ fz              = cell(n_cav,1);
 
 
 for i = 1:n_cav
-    
     K{i} = kron(eye(N),[zeros(1,p(i)-2),1,0]);
     P{i} = kron(eye(N),[zeros(1,p(i)-1),1]);
-    
+
     ui_ini{i} = reshape(ui_ini{i},[m(i)*Tini,1]);
     yi_ini{i} = reshape(yi_ini{i},[p(i)*Tini,1]);
     ei_ini{i} = reshape(ei_ini{i},[Tini,1]);
-    
+
     if i == 1
         beqg{i}  = [ui_ini{1};ei_ini{1};zeros(N,1)];
     else
         beqg{i}  = [ui_ini{i};ei_ini{i}];
     end
-    
 end
 
 % --------------------
@@ -111,7 +109,6 @@ theta_plus      = cell(n_cav,1);
 
 
 for k = 1:iteration_num
-    
     % error for primal and dual problems
     error_pri1      = 0;
     error_pri2      = 0;
@@ -121,8 +118,7 @@ for k = 1:iteration_num
     error_dual2     = 0;
     error_dual3     = 0;
     error_dual4     = 0;
-    
-    
+
     tolerence_pri1  = 0;
     tolerence_pri2  = 0;
     tolerence_pri3  = 0;
@@ -131,7 +127,7 @@ for k = 1:iteration_num
     tolerence_dual2 = 0;
     tolerence_dual3 = 0;
     tolerence_dual4 = 0;
-    
+
     % --------------------
     % Update g
     % --------------------
@@ -144,20 +140,20 @@ for k = 1:iteration_num
                 - Yif{i}'*P{i}'*phi{i}/2 - Uif{i}'*theta{i}/2 - rho*Yif{i}'*P{i}'*s{i}/2 - rho*Uif{i}'*u{i}/2;
         end
     end
-    
+
     %     parfor i = 1:n_cav
     for i = 1:n_cav
         temp = KKT_vert{i}*[-fg{i};beqg{i}];
         g_plus{i} = temp(1:T-Tini-N+1,:);
     end
-    
+
     % --------------------
     % Update z, mu, eta & Calculate errors
     % --------------------
     %     parfor i = 1:n_cav-1
     for i = 1:n_cav-1
         fz{i}           = -mu{i}/2 - rho/2*g_plus{i} - Yif{i}'*K{i}'*eta{i}/2 - rho/2*Yif{i}'*K{i}'*Eif{i+1}*g_plus{i+1};
-        
+
         z_plus{i}       = -Hz_vert{i}*fz{i};
         s_plus{i}       = min(max(P{i}*Yif{i}*g_plus{i} - phi{i}/rho,min(s_limit{i})*ones(N,1)),max(s_limit{i})*ones(N,1));
         u_plus{i}       = min(max(Uif{i}*g_plus{i} - theta{i}/rho,min(u_limit)*ones(N,1)),max(u_limit)*ones(N,1));
@@ -165,7 +161,7 @@ for k = 1:iteration_num
         eta_plus{i}     = eta{i} + rho*(Eif{i+1}*g_plus{i+1} - K{i}*Yif{i}*z_plus{i});
         phi_plus{i}     = phi{i} + rho*(s_plus{i} - P{i}*Yif{i}*g_plus{i});
         theta_plus{i}   = theta{i} + rho*(u_plus{i} - Uif{i}*g_plus{i});
-        
+
         error_pri1      = error_pri1 + norm(g_plus{i}-z_plus{i},2);
         tolerence_pri1  = tolerence_pri1 + sqrt(size(g_plus{i},1))*error_absolute + error_relative*max(norm(g_plus{i},2),norm(z_plus{i},2));
         error_dual1     = error_dual1 + norm(rho*(z_plus{i}-z{i}),2);
@@ -183,10 +179,9 @@ for k = 1:iteration_num
         error_dual4     = error_dual4 + norm(rho*Uif{i}'*(u_plus{i}-u{i}),2);
         tolerence_dual4 = tolerence_dual4 + sqrt(size(rho*(u_plus{i}-u{i}),1))*error_absolute + error_relative*norm(Uif{i}'*theta{i},2);
     end
-    
-    
+
     i               = n_cav;
-    
+
     fz{i}           = -mu{i}/2 - rho/2*g_plus{i};
     z_plus{i}       = -Hz_vert{i}^(-1)*fz{i};
     s_plus{i}       = min(max(P{i}*Yif{i}*g_plus{i} - phi{i}/rho,min(s_limit{i})*ones(N,1)),max(s_limit{i})*ones(N,1));
@@ -194,7 +189,7 @@ for k = 1:iteration_num
     mu_plus{i}      = mu{i} + rho*(g_plus{i} - z_plus{i});
     phi_plus{i}     = phi{i} + rho*(s_plus{i} - P{i}*Yif{i}*g_plus{i});
     theta_plus{i}   = theta{i} + rho*(u_plus{i} - Uif{i}*g_plus{i});
-    
+
     error_pri1      = error_pri1 + norm(g_plus{i}-z_plus{i},2);
     tolerence_pri1  = tolerence_pri1 + sqrt(size(g_plus{i},1))*error_absolute + error_relative*max(norm(g_plus{i},2),norm(z_plus{i},2));
     error_dual1     = error_dual1 + norm(rho*(z_plus{i}-z{i}),2);
@@ -207,8 +202,7 @@ for k = 1:iteration_num
     tolerence_pri4  = tolerence_pri4 + sqrt(size(u_plus{i},1))*error_absolute + error_relative*max(norm(u_plus{i},2),norm(Uif{i}*g_plus{i},2));
     error_dual4     = error_dual4 + norm(rho*Uif{i}'*(u_plus{i}-u{i}),2);
     tolerence_dual4 = tolerence_dual4 + sqrt(size(rho*(u_plus{i}-u{i}),1))*error_absolute + error_relative*norm(Uif{i}'*theta{i},2);
-    
-    
+
     fprintf('Iteration step: %d\n',k);
     %     fprintf('Satisfy: %d; Primal residuals: %10.8f; Tolerance: %10.8f \n',...
     %         error_pri1 <= tolerence_pri1,error_pri1,tolerence_pri1);
@@ -226,7 +220,7 @@ for k = 1:iteration_num
     %         error_dual3 <= tolerence_dual3,error_dual3,tolerence_dual3);
     %     fprintf('Satisfy: %d; Dual residuals: %10.8f; Tolerance: %10.8f \n',...
     %         error_dual4 <= tolerence_dual4,error_dual4,tolerence_dual4);
-    
+
     % update penalty parameter
     %     residual_ratio = (error_pri1 + error_pri2) / (error_dual1 + error_dual2);
     %     if residual_ratio > mu_rho
@@ -234,9 +228,7 @@ for k = 1:iteration_num
     %     elseif residual_ratio < 1/mu_rho
     %         rho = 1/tau_decr * rho;
     %     end
-    
-    
-    
+
     % --------------------
     % Plot convergence process
     % --------------------
@@ -256,7 +248,7 @@ for k = 1:iteration_num
         subplot(2,4,4);
         title(['Primal 4 error: ',num2str(error_pri4)],'Interpreter','latex');
         scatter(k,error_pri4); hold on;
-        
+
         subplot(2,4,5);
         title(['Dual 1 error: ',num2str(error_dual1)],'Interpreter','latex');
         scatter(k,error_dual1); hold on;
@@ -270,8 +262,7 @@ for k = 1:iteration_num
         title(['Dual 4 error: ',num2str(error_dual4)],'Interpreter','latex');
         scatter(k,error_dual4); hold on;
     end
-    
-    
+
     g       = g_plus;
     z       = z_plus;
     u       = u_plus;
@@ -280,7 +271,7 @@ for k = 1:iteration_num
     eta     = eta_plus;
     phi     = phi_plus;
     theta   = theta_plus;
-    
+
     % --------------------
     % Check stopping criterion
     % --------------------
@@ -290,13 +281,12 @@ for k = 1:iteration_num
             && error_pri4 <= tolerence_pri4 && error_dual4 <= tolerence_dual4
         break;
     end
-    
+
     %     if error_pri1 <= error_fix && error_pri2 <= error_fix ...
     %             && error_dual1 <= error_fix && error_dual2 <= error_fix
     %        break;
     %     end
-    
-    
+
 end
 
 % --------------------

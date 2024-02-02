@@ -16,7 +16,7 @@ warning off;
 output_bool = 1;
 
 % whether mixed traffic flow
-mix         = 1; 
+mix         = 1;
 
 % length of data samples
 T           = 600;
@@ -66,7 +66,7 @@ Tini                = 20;        % length of past data
 N                   = 50;        % length of predicted horizon
 
 % Weight coefficients
-weight_choice       = 3; 
+weight_choice       = 3;
 % case for weight choice in centralized DeeP-LCC
 
 switch weight_choice
@@ -134,7 +134,7 @@ fields = fieldnames(hdv_parameter);
 for i = 1:numel(fields)
     field = fields{i};
     data = hdv_parameter.(field);
-    
+
     % Check if the field is a vector
     if isvector(data)
         n = length(data);
@@ -190,11 +190,11 @@ end
 for i_data = 1:data_number
     % Load trajectory data
     load(['./_data/trajectory_data_collection/','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat']);
-    
+
     % ---------------------------------------
     %   Scenario initialization
     %----------------------------------------
-    
+
     % There is one head vehicle at the very beginning
     S1          = zeros(total_time_step, n1_vehicle + 1, 3);
     S(1,1,1)    = 0;

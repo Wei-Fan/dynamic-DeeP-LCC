@@ -1,4 +1,4 @@
-function [u_opt,y_opt,problem_status] = DeeP_LCC(Up,Yp,Uf,Yf,Ep,Ef,...
+function [u_opt,y_opt,problem_status] = DeeP_LCC_2(Up,Yp,Uf,Yf,Ep,Ef,C,...
     uini,yini,eini,Q,R,r,lambda_g,lambda_y,u_limit,s_limit)
 % =========================================================================
 %            Centralized Distributed DeeP-LCC Formulation
@@ -55,8 +55,8 @@ end
 H       = Yf'*Q_blk*Yf + Uf'*R_blk*Uf + lambda_g*eye(T-Tini-N+1) + lambda_y*Yp'*Yp;
 f       = -lambda_y*Yp'*yini_col;
 
-B       = [Up;Ep;Ef];
-c       = [uini_col;eini_col;zeros(N,1)];
+B       = [Up;Ep;Ef;C];
+c       = [uini_col;eini_col;zeros(N,1);zeros(size(C,1),1)];
 
 if constraint_bool % there exists input/output constraints
     Sf = [zeros(m,p-m),eye(m)];

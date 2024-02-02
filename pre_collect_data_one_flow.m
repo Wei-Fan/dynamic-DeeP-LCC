@@ -79,8 +79,8 @@ p_ctr = n + m; % number of output variables
 for i_data = 1:data_total_number
     % -------------------------------------------------------------------------
     %   Scenario initialization
-    %-------------------------------------------------------------------------- 
-    
+    %--------------------------------------------------------------------------
+
     % There are two identical head vehicle at the very beginning
     S           = zeros(total_time_step, n + 1, 3);
     S(1, 1, 1)  = 0;
@@ -88,18 +88,18 @@ for i_data = 1:data_total_number
         S(1, i, 1) = S(1, i - 1, 1) - hdv_parameter.s_star(i - 1);
     end
     S(1, :, 2)  = v_star * ones(n + 1, 1);
-    
+
     % -------------------------------------------------------------------------
     %   Data collection
-    %-------------------------------------------------------------------------- 
-    
+    %--------------------------------------------------------------------------
+
     % ------------------
     %  persistently exciting input data
     % ------------------
     ud          = -1 + 2 * rand(m_ctr, T);
     ed          = -1 + 2 * rand(1, T);
     yd          = zeros(p_ctr, T);
-        
+
     % ------------------
     %  generate output data
     % ------------------
@@ -107,21 +107,20 @@ for i_data = 1:data_total_number
         % Update acceleration
         acel                = HDV_dynamics(S(k,:,:), hdv_parameter) ...
                              -acel_noise + 2 * acel_noise * rand(n,1);
-        
+
         S(k,1,3)            = 0;         % the head vehicle
         S(k,2:end,3)        = acel;      % all the vehicles using HDV model
         S(k,Omega_c + 1,3) = ud(:,k);    % the CAVs
-        
+
         S(k+1,:,2) = S(k,:,2) + Tstep * S(k,:,3);
         S(k+1,1,2) = ed(k) + v_star;   % the velocity of the head vehicle
-        S(k+1,:,1) = S(k,:,1) + Tstep * S(k,:,2);    
-        
+        S(k+1,:,1) = S(k,:,1) + Tstep * S(k,:,2);
+
         yd(:,k) = measure_mixed_traffic(S(k,2:end,2), S(k,:,1), ID, v_star, s_star, 3);
     end
     k = k+1;
     yd(:,k) = measure_mixed_traffic(S(k,2:end,2), S(k,:,1), ID, v_star, s_star, 3);
-    
-    
+
     % ------------------
     %  data Hankel matrices
     % ------------------
@@ -129,16 +128,15 @@ for i_data = 1:data_total_number
     U   = hankel_matrix(ud, Tini + N);
     Up  = U(1:Tini * m_ctr,:);
     Uf  = U((Tini * m_ctr + 1):end,:);
-    
+
     E   = hankel_matrix(ed, Tini + N);
     Ep  = E(1:Tini,:);
     Ef  = E((Tini + 1):end,:);
-    
+
     Y   = hankel_matrix(yd, Tini + N);
     Yp  = Y(1:Tini * p_ctr,:);
     Yf  = Y((Tini * p_ctr + 1):end,:);
-    
-    
+
     str=['Processing...',num2str(i_data/data_total_number*100),'%'];
     waitbar(i_data/data_total_number, h_wait, str);
 
