@@ -63,13 +63,13 @@ s_star      = 20;                   % Equilibrium spacing for CAV
 acel_max = 2;
 dcel_max = -5;
 
-save(['.\_data\ID_',trial_name,'_n1_',num2str(n1),'_n2_',num2str(n2),'_tmp.mat'],'ID1', 'ID2', 'acel_noise','v_star','s_star');
+save(['./_data/ID_',trial_name,'_n1_',num2str(n1),'_n2_',num2str(n2),'_tmp.mat'],'ID1', 'ID2', 'acel_noise','v_star','s_star');
 
 % Random setup for HDV
 hdv_parameter1 = generate_HDVs(n1);
 hdv_parameter2 = generate_HDVs(n2);
 
-save(['.\_data\hdv_',trial_name,'_n1_',num2str(n1),'_n2_',num2str(n2),'_tmp.mat'],'hdv_type','hdv_parameter1', 'hdv_parameter2');
+save(['./_data/hdv_',trial_name,'_n1_',num2str(n1),'_n2_',num2str(n2),'_tmp.mat'],'hdv_type','hdv_parameter1', 'hdv_parameter2');
 
 % ------------------
 %  size in DeeP-LCC
@@ -190,7 +190,7 @@ for i_data = 1:data_total_number
     str=['Processing...',num2str(i_data/data_total_number*100),'%'];
     waitbar(i_data/data_total_number, h_wait, str);
 
-    save(['.\_data\trajectory_data_collection\',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
+    save(['./_data/trajectory_data_collection/',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
         'U1p','Y1p','U1f','Y1f','E1p','E1f','U2p','Y2p','U2f','Y2f','E2p','E2f','T','Tini','N','Tstep');
 
 end

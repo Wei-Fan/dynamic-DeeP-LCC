@@ -9,7 +9,7 @@ addpath('_data');
 trial_name = 'one_flow';
 
 % ------------------------------------------
-% Simulation Parameters 
+% Simulation Parameters
 % ------------------------------------------
 % How many data sets to collect
 data_total_number = 10;
@@ -21,7 +21,7 @@ Tstep            = 0.05;            % Time Step
 total_time_step  = total_time / Tstep;
 
 % ------------------------------------------
-% DeeP-LCC Parameters 
+% DeeP-LCC Parameters
 % ------------------------------------------
 % T       = 1200;      % length of data samples
 T               = 600;       % Second choise
@@ -30,7 +30,7 @@ Tini            = 20;        % length of past data
 N               = 50;        % length of predicted horizon
 
 weight_v        = 1;        % weight coefficient for velocity error
-weight_s        = 0.5;      % weight coefficient for spacing error   
+weight_s        = 0.5;      % weight coefficient for spacing error
 weight_u        = 0.1;      % weight coefficient for control input
 
 lambda_g        = 10;        % penalty on ||g||_2^2 in objective
@@ -58,12 +58,12 @@ s_star      = 20;                   % Equilibrium spacing for CAV
 acel_max = 2;
 dcel_max = -5;
 
-save(['.\_data\ID_',trial_name,'_n_',num2str(n),'_tmp.mat'],'ID','acel_noise','v_star','s_star');
+save(['./_data/ID_',trial_name,'_n_',num2str(n),'_tmp.mat'],'ID','acel_noise','v_star','s_star');
 
 % Random setup for HDV
 hdv_parameter = generate_HDVs(n);
 
-save(['.\_data\hdv_',trial_name,'_n_',num2str(n),'_tmp.mat'],'hdv_type','hdv_parameter');
+save(['./_data/hdv_',trial_name,'_n_',num2str(n),'_tmp.mat'],'hdv_type','hdv_parameter');
 
 % ------------------
 %  size in DeeP-LCC
@@ -142,7 +142,7 @@ for i_data = 1:data_total_number
     str=['Processing...',num2str(i_data/data_total_number*100),'%'];
     waitbar(i_data/data_total_number, h_wait, str);
 
-    save(['.\_data\trajectory_data_collection\',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
+    save(['./_data/trajectory_data_collection/',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
         'Up','Yp','Uf','Yf','Ep','Ef','T','Tini','N','Tstep');
 
 end

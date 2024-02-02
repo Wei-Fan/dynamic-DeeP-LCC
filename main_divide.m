@@ -92,7 +92,7 @@ end
 % ------------------------------------------
 % Parameters in Mixed Traffic
 % ------------------------------------------
-load(['_data\ID_', trial_name, '_n_100_tmp.mat']);
+load(['_data/ID_', trial_name, '_n_100_tmp.mat']);
 n_total     = length(ID);            % number of vehicles
 m_total     = length(find(ID==1));
 Omega_c = find(ID==1);
@@ -120,7 +120,7 @@ u_limit         = [dcel_max, acel_max];
 s_limit         = [spacing_min, spacing_max] - s_star;
 
 % Random setup for OVM
-load(['_data\hdv_', trial_name, '_n_100_tmp.mat']);
+load(['_data/hdv_', trial_name, '_n_100_tmp.mat']);
 % Initialize two empty structs
 hdv_parameter1 = struct();
 hdv_parameter2 = struct();
@@ -172,7 +172,7 @@ p2_ctr = n2 + m2;     % number of output variables
 %TODO:!!!
 for i_data = 1:data_number
     % Load trajectory data
-    load(['.\_data\trajectory_data_collection\','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat']);
+    load(['./_data/trajectory_data_collection/','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat']);
     
     % ---------------------------------------
     %   Scenario initialization

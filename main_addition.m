@@ -189,7 +189,7 @@ end
 
 for i_data = 1:data_number
     % Load trajectory data
-    load(['.\_data\trajectory_data_collection\','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat']);
+    load(['./_data/trajectory_data_collection/','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat']);
     
     % ---------------------------------------
     %   Scenario initialization

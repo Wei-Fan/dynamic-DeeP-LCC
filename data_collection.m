@@ -240,7 +240,7 @@ for i_data = 1:data_total_number
     waitbar(i_data/data_total_number, h_wait, str);
 
     save_data = {hdv_type,acel_noise,U1p,Y1p,U1f,Y1f,E1p,E1f,T,Tini,N,ID1,ID2,Tstep,v_star,U2p,U2f,E2p,E2f,Y2p,Y2f};
-    save(['.\_data\trajectory_data_collection\','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat'],"save_data");
+    save(['./_data/trajectory_data_collection/','data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'.mat'],"save_data");
 
 end
 
