@@ -143,7 +143,7 @@ for i_data = 1:data_total_number
     waitbar(i_data/data_total_number, h_wait, str);
 
     save(['./_data/trajectory_data_collection/',trial_name, '_data',num2str(i_data),'_T_',num2str(T),'_',num2str(Tini),'_',num2str(N),'_noiseLevel_',num2str(acel_noise),'_tmp.mat'],...
-        'Up','Yp','Uf','Yf','Ep','Ef','T','Tini','N','Tstep');
+        'ud','ed','yd','T','Tini','N','Tstep');
 
 end
 
