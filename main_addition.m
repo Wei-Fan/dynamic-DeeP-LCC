@@ -199,7 +199,7 @@ for i_data = 1:data_number
     Yp  = Y(1:Tini * p_ctr,:);
     Yf  = Y((Tini * p_ctr + 1):end,:);
     
-    C   = hankel_matrix(yd, Tini + N);
+    C   = hankel_matrix(cd, Tini + N);
 
 
     % ------------------
