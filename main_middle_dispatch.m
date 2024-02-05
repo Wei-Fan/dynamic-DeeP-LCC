@@ -98,7 +98,7 @@ m_total     = length(find(ID==1));
 Omega_c     = find(ID==1);
 
 % Generate the first random integer
-firstInteger = randi([2, m_total], 1, 1);
+firstInteger = randi([2, m_total - 1], 1, 1);
 
 % Initialize the second integer
 secondInteger = firstInteger;
@@ -116,7 +116,7 @@ n_separate  = Omega_c(m_separate);
 
 ID1         = ID(1:n_separate(1) - 1);
 IDb         = ID(n_separate(1) : n_separate(2) - 1);
-ID2         = ID(n_separate(2) -1 : end);
+ID2         = ID(n_separate(2) : end);
 
 Omega1_c    = find(ID1==1);          % position of CAVs
 n1          = length(ID1);           % number of vehicles
@@ -130,7 +130,11 @@ Omega2_c    = find(ID2==1);          % position of CAVs
 n2          = length(ID2);           % number of vehicles
 m2          = length(Omega2_c);      % number of CAVs
 
-TODO:!!!
+IDa         = [ID1; ID2];
+Omegaa_c    = find(IDa==1);          % position of CAVs
+na          = length(IDa);           % number of vehicles
+ma          = length(Omegaa_c);      % number of CAVs
+
 % Constraints
 acel_max        = 2;
 dcel_max        = -5;
@@ -141,9 +145,9 @@ s_limit         = [spacing_min, spacing_max] - s_star;
 
 % Random setup for OVM
 load(['_data/hdv_', trial_name, '_n_100_tmp.mat']);
-% Initialize two empty structs
-hdv_parameter1 = struct();
-hdv_parameter2 = struct();
+% Initialize empty structs
+hdv_parametera = struct();
+hdv_parameterb = struct();
 
 % Loop through the fields of the input struct
 fields = fieldnames(hdv_parameter);
@@ -152,21 +156,13 @@ for i = 1:numel(fields)
     data = hdv_parameter.(field);
 
     % Check if the field is a vector
-    if isvector(data)
-        n = length(data);
-        if n > n2
-            % Separate the vector into two parts, n-n2 and n2
-            hdv_parameter1.(field) = data(1:n1);
-            hdv_parameter2.(field) = data((n1 + 1):end);
-        else
-            % If the vector has 10 or fewer elements, include it in both structs
-            hdv_parameter1.(field) = data;
-            hdv_parameter2.(field) = data;
-        end
+    if length(data) > 1
+        hdv_parametera.(field) = [data(1:n1);data((n1 + nb + 1): end)];
+        hdv_parameterb.(field) = data((n1 + 1):(n1 + nb));
     else
         % If the field is not a vector, include it in both structs
-        hdv_parameter1.(field) = data;
-        hdv_parameter2.(field) = data;
+        hdv_parametera.(field) = data;
+        hdv_parameterb.(field) = data;
     end
 end
 
@@ -181,13 +177,14 @@ measure_type = 3;
 %  size in DeeP-LCC
 % ------------------
 
-n1_ctr = 2 * n1;      % number of state variables
-m1_ctr = m1;          % number of input variables
-p1_ctr = n1 + m1;     % number of output variables
+na_ctr = 2 * na;      % number of state variables
+ma_ctr = ma;          % number of input variables
+pa_ctr = na + ma;  % number of output variables
 
-n2_ctr = 2 * n2;      % number of state variables
-m2_ctr = m2;          % number of input variables
-p2_ctr = n2 + m2;     % number of output variables
+nb_ctr = 2 * nb;      % number of state variables
+mb_ctr = mb;          % number of input variables
+pb_ctr = nb + mb;     % number of output variables
+
 
 for i_data = 1:data_number
     % Load trajectory data
@@ -197,84 +194,89 @@ for i_data = 1:data_number
     %----------------------------------------
 
     % There is one head vehicle at the very beginning
-    S1          = zeros(total_time_step, n1 + 1, 3);
-    S1(1,1,1)    = 0;
-    for i = 2 : n1 + 1
-        S1(1,i,1) = S1(1,i-1,1) - hdv_parameter1.s_star(i-1);
+    Sa          = zeros(total_time_step, na + 1, 3);
+    Sa(1,1,1)    = 0;
+    for i = 2 : na + 1
+        Sa(1,i,1) = Sa(1,i-1,1) - hdv_parametera.s_star(i-1);
     end
-    S1(1,:,2)    = v_star * ones(n1 + 1,1);
+    Sa(1,:,2)    = v_star * ones(na + 1,1);
 
-    S2          = zeros(total_time_step, n2 + 1, 3);
-    S2(1,1,1)    = 0;
-    for i = 2 : n2 + 1
-        S2(1,i,1) = S1(1,i-1,1) - hdv_parameter2.s_star(i-1);
+    Sb          = zeros(total_time_step, nb + 1, 3);
+    Sb(1,1,1)    = 0;
+    for i = 2 : nb + 1
+        Sb(1,i,1) = Sb(1,i-1,1) - hdv_parameterb.s_star(i-1);
     end
-    S2(1,:,2)    = v_star * ones(n2 + 1,1);
+    Sb(1,:,2)    = v_star * ones(nb + 1,1);
 
     % ------------------
     %  DeeP-LCC Formulation
     % ------------------
-    Q1_v         = weight_v*eye(n1);              % penalty for velocity error
-    Q1_s         = weight_s*eye(p1_ctr-n1);       % penalty for spacing error
-    Q1           = blkdiag(Q1_v,Q1_s);            % penalty for trajectory error
-    R1           = weight_u*eye(m1_ctr);          % penalty for control input
+    Qa_v         = weight_v*eye(na);              % penalty for velocity error
+    Qa_s         = weight_s*eye(pa_ctr-na);       % penalty for spacing error
+    Qa           = blkdiag(Qa_v,Qa_s);            % penalty for trajectory error
+    Ra           = weight_u*eye(ma_ctr);          % penalty for control input
 
-    u1           = zeros(m1_ctr,total_time_step); % control input
-    x1           = zeros(n1_ctr,total_time_step); % state variables
-    y1           = zeros(p1_ctr,total_time_step); % output variables
-    pr_status1   = zeros(total_time_step,1);      % problem status
-    e1           = zeros(1,total_time_step);      % external input
+    ua           = zeros(ma_ctr,total_time_step); % control input
+    xa           = zeros(na_ctr,total_time_step); % state variables
+    ya           = zeros(pa_ctr,total_time_step); % output variables
+    pr_statusa   = zeros(total_time_step,1);      % problem status
+    ea           = zeros(1,total_time_step);      % external input
 
-    Q2_v         = weight_v*eye(n2);              % penalty for velocity error
-    Q2_s         = weight_s*eye(p2_ctr-n2);       % penalty for spacing error
-    Q2           = blkdiag(Q2_v,Q2_s);            % penalty for trajectory error
-    R2           = weight_u*eye(m2_ctr);          % penalty for control input
+    Qb_v         = weight_v*eye(nb);              % penalty for velocity error
+    Qb_s         = weight_s*eye(pb_ctr-nb);       % penalty for spacing error
+    Qb           = blkdiag(Qb_v,Qb_s);            % penalty for trajectory error
+    Rb           = weight_u*eye(mb_ctr);          % penalty for control input
 
-    u2           = zeros(m2_ctr,total_time_step); % control input
-    x2           = zeros(n2_ctr,total_time_step); % state variables
-    y2           = zeros(p2_ctr,total_time_step); % output variables
-    pr_status2   = zeros(total_time_step,1);      % problem status
-    e2           = zeros(1,total_time_step);      % external input
+    ub           = zeros(mb_ctr,total_time_step); % control input
+    xb           = zeros(nb_ctr,total_time_step); % state variables
+    yb           = zeros(pb_ctr,total_time_step); % output variables
+    pr_statusb   = zeros(total_time_step,1);      % problem status
+    eb           = zeros(1,total_time_step);      % external input
 
     % ------------------
     %  Separate Hankel Matrix
     % ------------------
-    ud1 = ud(1:m1, :);
-    ud2 = ud(m1+1:end, :);
-    ed1 = ed;
-    ed2 = yd(n1, :);
-    yd1 = [yd(1:n1, :); yd(n1+n2+1:n1+n2+m1, :)];
-    yd2 = [yd(n1+1:n1+n2, :); yd(n1+n2+m1+1:end, :)];
+    uda = [ud(1:m1, :);ud(m1 + mb + 1: end, :)];
+    udb = ud(m1 + 1:m1 + mb, :);
+    eda = ed;
+    edb = yd(n1, :);
+    yda = [yd(1:n1, :); yd(n1+nb+1:n1+nb+n2, :);...
+           yd(n1+nb+n2+1:n1+nb+n2+m1, :); yd(n1+nb+n2+m1+mb+1:end, :)];
+    ydb = [yd(n1+1:n1+nb, :); yd(n1+nb+n2+m1+1:n1+nb+n2+m1+mb, :)];
+    
+    cd   = yd(n1+nb, :) - yd(n1, :);
 
-    U1   = hankel_matrix(ud1, Tini + N);
-    U1p  = U1(1:Tini * m1_ctr,:);
-    U1f  = U1((Tini * m1_ctr + 1):end,:);
+    Ua   = hankel_matrix(uda, Tini + N);
+    Uap  = Ua(1:Tini * ma_ctr,:);
+    Uaf  = Ua((Tini * ma_ctr + 1):end,:);
 
-    E1   = hankel_matrix(ed1, Tini + N);
-    E1p  = E1(1:Tini,:);
-    E1f  = E1((Tini + 1):end,:);
+    Ea   = hankel_matrix(eda, Tini + N);
+    Eap  = Ea(1:Tini,:);
+    Eaf  = Ea((Tini + 1):end,:);
 
-    Y1   = hankel_matrix(yd1, Tini + N);
-    Y1p  = Y1(1:Tini * p1_ctr,:);
-    Y1f  = Y1((Tini * p1_ctr + 1):end,:);
+    Ya   = hankel_matrix(yda, Tini + N);
+    Yap  = Ya(1:Tini * pa_ctr,:);
+    Yaf  = Ya((Tini * pa_ctr + 1):end,:);
+    
+    C   = hankel_matrix(cd, Tini + N);
 
-    U2   = hankel_matrix(ud2, Tini + N);
-    U2p  = U2(1:Tini * m2_ctr,:);
-    U2f  = U2((Tini * m2_ctr + 1):end,:);
+    Ub   = hankel_matrix(udb, Tini + N);
+    Ubp  = Ub(1:Tini * mb_ctr,:);
+    Ubf  = Ub((Tini * mb_ctr + 1):end,:);
 
-    E2   = hankel_matrix(ed2, Tini + N);
-    E2p  = E2(1:Tini,:);
-    E2f  = E2((Tini + 1):end,:);
+    Eb   = hankel_matrix(edb, Tini + N);
+    Ebp  = Eb(1:Tini,:);
+    Ebf  = Eb((Tini + 1):end,:);
 
-    Y2   = hankel_matrix(yd2, Tini + N);
-    Y2p  = Y2(1:Tini * p2_ctr,:);
-    Y2f  = Y2((Tini * p2_ctr + 1):end,:);
+    Yb   = hankel_matrix(ydb, Tini + N);
+    Ybp  = Yb(1:Tini * pb_ctr,:);
+    Ybf  = Yb((Tini * pb_ctr + 1):end,:);
 
     % ------------------
     %  Reference trajectory
     % ------------------
-    r1       = zeros(p1_ctr, total_time_step + N);            % stabilization
-    r2       = zeros(p2_ctr, total_time_step + N);            % stabilization
+    ra       = zeros(pa_ctr, total_time_step + N);            % stabilization
+    rb       = zeros(pb_ctr, total_time_step + N);            % stabilization
 
     % ---------------------------------------------------------------------
     %   Simulation starts here
@@ -284,55 +286,55 @@ for i_data = 1:data_number
     % ------------------
     %  Initial trajectory
     % ------------------
-    u1ini = zeros(m1_ctr,Tini);
-    e1ini = zeros(1,Tini);
-    y1ini = zeros(p1_ctr,Tini);
+    uaini = zeros(ma_ctr,Tini);
+    eaini = zeros(1,Tini);
+    yaini = zeros(pa_ctr,Tini);
 
-    u2ini = zeros(m2_ctr,Tini);
-    e2ini = zeros(1,Tini);
-    y2ini = zeros(p2_ctr,Tini);
+    ubini = zeros(mb_ctr,Tini);
+    ebini = zeros(1,Tini);
+    ybini = zeros(pb_ctr,Tini);
 
     for k = 1:Tini-1
         % Update acceleration for flow 1
-        acel1 = HDV_dynamics(S1(k,:,:),hdv_parameter1) ...
-              - acel_noise + 2*acel_noise*rand(n1,1);
+        acela = HDV_dynamics(Sa(k,:,:),hdv_parametera) ...
+              - acel_noise + 2*acel_noise*rand(na,1);
 
-        S1(k,1,3)           = 0;               % the head vehicle
-        S1(k,2:end,3)       = acel1;           % all the vehicles using HDV model
-        S1(k,Omega1_c+1,3)  = u1ini(:,k);      % the CAV
+        Sa(k,1,3)           = 0;               % the head vehicle
+        Sa(k,2:end,3)       = acela;           % all the vehicles using HDV model
+        Sa(k,Omegaa_c+1,3)  = uaini(:,k);      % the CAV
 
-        S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-        S1(k+1,1,2) = e1ini(k) + v_star;       % the velocity of the head vehicle
-        S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+        Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+        Sa(k+1,1,2) = eaini(k) + v_star;       % the velocity of the head vehicle
+        Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
-        y1ini(:,k) = measure_mixed_traffic(S1(k,2:end,2),S1(k,:,1),ID1,v_star,s_star,measure_type);
+        yaini(:,k) = measure_mixed_traffic(Sa(k,2:end,2),Sa(k,:,1),IDa,v_star,s_star,measure_type);
 
         % Update acceleration for flow 2
-        acel2 = HDV_dynamics(S2(k,:,:),hdv_parameter2) ...
-              - acel_noise + 2*acel_noise*rand(n2,1);
+        acelb = HDV_dynamics(Sb(k,:,:),hdv_parameterb) ...
+              - acel_noise + 2*acel_noise*rand(nb,1);
 
-        S2(k,1,3)           = 0;               % the head vehicle
-        S2(k,2:end,3)       = acel2;           % all the vehicles using HDV model
-        S2(k,Omega2_c+1,3)  = u2ini(:,k);      % the CAV
+        Sb(k,1,3)           = 0;               % the head vehicle
+        Sb(k,2:end,3)       = acelb;           % all the vehicles using HDV model
+        Sb(k,Omegab_c+1,3)  = ubini(:,k);      % the CAV
 
-        S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
-        S2(k+1,1,2) = e2ini(k) + v_star;       % the velocity of the head vehicle
-        S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+        Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
+        Sb(k+1,1,2) = ebini(k) + v_star;       % the velocity of the head vehicle
+        Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
 
-        y2ini(:,k) = measure_mixed_traffic(S2(k,2:end,2),S2(k,:,1),ID2,v_star,s_star,measure_type);
+        ybini(:,k) = measure_mixed_traffic(Sb(k,2:end,2),Sb(k,:,1),IDb,v_star,s_star,measure_type);
     end
 
     k_end = k+1;
-    y1ini(:,k_end) = measure_mixed_traffic(S1(k_end,2:end,2),S1(k_end,:,1),ID1,v_star,s_star,measure_type);
-    y2ini(:,k_end) = measure_mixed_traffic(S2(k_end,2:end,2),S2(k_end,:,1),ID2,v_star,s_star,measure_type);
+    yaini(:,k_end) = measure_mixed_traffic(Sa(k_end,2:end,2),Sa(k_end,:,1),IDa,v_star,s_star,measure_type);
+    ybini(:,k_end) = measure_mixed_traffic(Sb(k_end,2:end,2),Sb(k_end,:,1),IDb,v_star,s_star,measure_type);
 
-    u1(:,1:Tini) = u1ini;
-    e1(:,1:Tini) = e1ini;
-    y1(:,1:Tini) = y1ini;
+    ua(:,1:Tini) = uaini;
+    ea(:,1:Tini) = eaini;
+    ya(:,1:Tini) = yaini;
 
-    u2(:,1:Tini) = u2ini;
-    e2(:,1:Tini) = e2ini;
-    y2(:,1:Tini) = y2ini;
+    ub(:,1:Tini) = ubini;
+    eb(:,1:Tini) = ebini;
+    yb(:,1:Tini) = ybini;
 
     % ------------------
     %  simulation starts here
@@ -340,141 +342,141 @@ for i_data = 1:data_number
     for k = Tini:total_time_step-1
         % Update acceleration
         tic
-        acel1 = HDV_dynamics(S1(k,:,:),hdv_parameter1) ...
-              - acel_noise + 2*acel_noise*rand(n1,1);
-        acel2 = HDV_dynamics(S2(k,:,:),hdv_parameter2) ...
-              - acel_noise + 2*acel_noise*rand(n2,1);
+        acela = HDV_dynamics(Sa(k,:,:),hdv_parametera) ...
+              - acel_noise + 2*acel_noise*rand(na,1);
+        acelb = HDV_dynamics(Sb(k,:,:),hdv_parameterb) ...
+              - acel_noise + 2*acel_noise*rand(nb,1);
 
-        S1(k,2:end,3) = acel1;     % all the vehicles using HDV model
-        S2(k,2:end,3) = acel2;     % all the vehicles using HDV model
+        Sa(k,2:end,3) = acela;     % all the vehicles using HDV model
+        Sb(k,2:end,3) = acelb;     % all the vehicles using HDV model
 
-        [u1_opt,y1_opt,pr1] = DeeP_LCC(U1p,Y1p,U1f,Y1f,E1p,E1f,u1ini,y1ini,e1ini,Q1,R1,r1(:,k:k+N-1),...
+        [ua_opt,ya_opt,pra] = DeeP_LCC_2(Uap,Yap,Uaf,Yaf,Eap,Eaf, C,uaini,yaini,eaini,Qa,Ra,ra(:,k:k+N-1),...
                            lambda_g,lambda_y,u_limit,s_limit);
-        [u2_opt,y2_opt,pr2] = DeeP_LCC(U2p,Y2p,U2f,Y2f,E2p,E2f,u2ini,y2ini,e2ini,Q2,R2,r2(:,k:k+N-1),...
+        [ub_opt,yb_opt,prb] = DeeP_LCC(Ubp,Ybp,Ubf,Ybf,Ebp,Ebf,ubini,ybini,ebini,Qb,Rb,rb(:,k:k+N-1),...
                            lambda_g,lambda_y,u_limit,s_limit);
         toc
         computation_time(k) = toc;
 
         % One-step formulation
-        u1(:,k) = u1_opt(1:m1_ctr,1);
-        u2(:,k) = u2_opt(1:m1_ctr,1);
+        ua(:,k) = ua_opt(1:ma_ctr,1);
+        ub(:,k) = ub_opt(1:mb_ctr,1);
         % Update accleration for the CAV
-        S1(k,Omega1_c+1,3)   = u1(:,k);
-        S2(k,Omega2_c+1,3)   = u2(:,k);
+        Sa(k,Omegaa_c+1,3)   = ua(:,k);
+        Sb(k,Omegab_c+1,3)   = ub(:,k);
         % Judge whether SD system commands to brake
-        brake_vehicle_ID1 = find(acel1==dcel_max);                 % the vehicles that need to brake
-        brake_cav_ID1     = intersect(brake_vehicle_ID1,Omega1_c); % the CAVs that need to brake
-        if ~isempty(brake_cav_ID1)
-            S1(k,brake_cav_ID1+1,3) = dcel_max;
+        brake_vehicle_ID1a = find(acela==dcel_max);                 % the vehicles that need to brake
+        brake_cav_IDa     = intersect(brake_vehicle_IDa,Omegaa_c); % the CAVs that need to brake
+        if ~isempty(brake_cav_IDa)
+            Sa(k,brake_cav_IDa+1,3) = dcel_max;
         end
 
-        brake_vehicle_ID2 = find(acel2==dcel_max);                 % the vehicles that need to brake
-        brake_cav_ID2     = intersect(brake_vehicle_ID2,Omega2_c); % the CAVs that need to brake
-        if ~isempty(brake_cav_ID2)
-            S2(k,brake_cav_ID2+1,3) = dcel_max;
+        brake_vehicle_IDb = find(acelb==dcel_max);                 % the vehicles that need to brake
+        brake_cav_IDb     = intersect(brake_vehicle_IDb,Omegab_c); % the CAVs that need to brake
+        if ~isempty(brake_cav_IDb)
+            Sb(k,brake_cav_IDb+1,3) = dcel_max;
         end
 
         % Update state
-        S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-        S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
+        Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+        Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
 
         % -------------
         % Perturbation for the head vehicle
         % -------------
         switch per_type
             case 1
-                S1(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
-                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                Sa(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
-                S2(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
-                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+                Sb(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
             case 2
                 if (k-Tini)*Tstep <= brake_amp/5
-                    S1(k+1,1,3) = -5;
+                    Sa(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= brake_amp/5+5
-                    S1(k+1,1,3) = 1;
+                    Sa(k+1,1,3) = 1;
                 else
-                    S1(k+1,1,3) = 0;
+                    Sa(k+1,1,3) = 0;
                 end
-                S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
                 if (k-Tini)*Tstep <= brake_amp/5
-                    S2(k+1,1,3) = -5;
+                    Sb(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= brake_amp/5+5
-                    S2(k+1,1,3) = 1;
+                    Sb(k+1,1,3) = 1;
                 else
-                    S2(k+1,1,3) = 0;
+                    Sb(k+1,1,3) = 0;
                 end
-                S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
-                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+                Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
             case 3
                 if (k-Tini)*Tstep <= brake_amp/5
-                    S1(k+1,1,3) = -5;
+                    Sa(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= brake_amp/5+3
-                    S1(k+1,1,3) = 0;
+                    Sa(k+1,1,3) = 0;
                 elseif (k-Tini)*Tstep <= brake_amp/5+3+5
-                    S1(k+1,1,3) = 1;
+                    Sa(k+1,1,3) = 1;
                 else
-                    S1(k+1,1,3) = 0;
+                    Sa(k+1,1,3) = 0;
                 end
-                S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
                 if (k-Tini)*Tstep <= brake_amp/5
-                    S2(k+1,1,3) = -5;
+                    Sb(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= brake_amp/5+3
-                    S2(k+1,1,3) = 0;
+                    Sb(k+1,1,3) = 0;
                 elseif (k-Tini)*Tstep <= brake_amp/5+3+5
-                    S2(k+1,1,3) = 1;
+                    Sb(k+1,1,3) = 1;
                 else
-                    S2(k+1,1,3) = 0;
+                    Sb(k+1,1,3) = 0;
                 end
-                S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
-                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+                Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
             case 4
                 if (k-Tini)*Tstep <= 2
-                    S1(k+1,1,3) = -5;
+                    Sa(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= 2+5
-                    S1(k+1,1,3) = 2;
+                    Sa(k+1,1,3) = 2;
                 end
-                S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
                 if (k-Tini)*Tstep <= 2
-                    S2(k+1,1,3) = -5;
+                    Sb(k+1,1,3) = -5;
                 elseif (k-Tini)*Tstep <= 2+5
-                    S2(k+1,1,3) = 2;
+                    Sb(k+1,1,3) = 2;
                 end
-                S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
-                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+                Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
             case 5
                 if (k-Tini)*Tstep <= brake_amp/2
-                    S1(k,4,3) = -2;
+                    Sa(k,4,3) = -2;
                 end
-                S1(k+1,:,2) = S1(k,:,2) + Tstep*S1(k,:,3);
-                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                Sa(k+1,:,2) = Sa(k,:,2) + Tstep*Sa(k,:,3);
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
 
                 if (k-Tini)*Tstep <= brake_amp/2
-                    S2(k,4,3) = -2;
+                    Sb(k,4,3) = -2;
                 end
-                S2(k+1,:,2) = S2(k,:,2) + Tstep*S2(k,:,3);
-                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
+                Sb(k+1,:,2) = Sb(k,:,2) + Tstep*Sb(k,:,3);
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
         end
 
         % Record output
-        y1(:,k) = measure_mixed_traffic(S1(k,2:end,2),S1(k,:,1),ID1,v_star,s_star,measure_type);
-        e1(k)   = S1(k,1,2) - v_star;
-        y2(:,k) = measure_mixed_traffic(S2(k,2:end,2),S2(k,:,1),ID2,v_star,s_star,measure_type);
-        e2(k)   = S2(k,1,2) - v_star;
+        ya(:,k) = measure_mixed_traffic(Sa(k,2:end,2),Sa(k,:,1),IDa,v_star,s_star,measure_type);
+        ea(k)   = Sa(k,1,2) - v_star;
+        yb(:,k) = measure_mixed_traffic(Sb(k,2:end,2),Sb(k,:,1),IDb,v_star,s_star,measure_type);
+        eb(k)   = Sb(k,1,2) - v_star;
 
         % update past data in control process
-        u1ini = u1(:,k-Tini+1:k);
-        y1ini = y1(:,k-Tini+1:k);
-        e1ini = S1(k-Tini+1:k,1,2) - v_star;
-        u2ini = u2(:,k-Tini+1:k);
-        y2ini = y2(:,k-Tini+1:k);
-        e2ini = S2(k-Tini+1:k,1,2) - v_star;
+        uaini = ua(:,k-Tini+1:k);
+        yaini = ya(:,k-Tini+1:k);
+        eaini = Sa(k-Tini+1:k,1,2) - v_star;
+        ubini = ub(:,k-Tini+1:k);
+        ybini = yb(:,k-Tini+1:k);
+        ebini = Sb(k-Tini+1:k,1,2) - v_star;
 
         fprintf('Simulation number: %d  |  process... %2.2f%% \n',i_data,k/total_time_step*100);
 
@@ -483,8 +485,8 @@ for i_data = 1:data_number
     end
 
     k_end = k+1;
-    y1(:,k_end) = measure_mixed_traffic(S1(k_end,2:end,2),S1(k_end,:,1),ID1,v_star,s_star,measure_type);
-    y2(:,k_end) = measure_mixed_traffic(S2(k_end,2:end,2),S2(k_end,:,1),ID2,v_star,s_star,measure_type);
+    ya(:,k_end) = measure_mixed_traffic(Sa(k_end,2:end,2),Sa(k_end,:,1),IDa,v_star,s_star,measure_type);
+    yb(:,k_end) = measure_mixed_traffic(Sb(k_end,2:end,2),Sb(k_end,:,1),IDb,v_star,s_star,measure_type);
 
     tsim = toc;
 
