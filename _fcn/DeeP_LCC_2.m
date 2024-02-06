@@ -12,7 +12,7 @@ function [u_opt,y_opt,problem_status] = DeeP_LCC_2(Up,Yp,Uf,Yf,Ep,Ef,C,...
 % =========================================================================
 
 
-if nargin < 15           % whether there exists input/output constraints and initial optimization point
+if nargin < 16           % whether there exists input/output constraints and initial optimization point
     constraint_bool = 0;
 else
     constraint_bool = 1;
@@ -57,6 +57,8 @@ f       = -lambda_y*Yp'*yini_col;
 
 B       = [Up;Ep;Ef;C];
 c       = [uini_col;eini_col;zeros(N,1);zeros(size(C,1),1)];
+%B       = [Up;Ep;Ef];
+%c       = [uini_col;eini_col;zeros(N,1)];
 
 if constraint_bool % there exists input/output constraints
     Sf = [zeros(m,p-m),eye(m)];
@@ -74,7 +76,7 @@ end
 
 
 
-options = optimoptions('quadprog','Algorithm','interior-point-convex','OptimalityTolerance',1e-3);
+options = optimoptions('quadprog','Algorithm','interior-point-convex','OptimalityTolerance',1e-3, 'StepTolerance',1e-6); %1e-3
 % Optimization
 [g_opt,fval,exitflag,output,lambda] = quadprog(H,f,A,b,B,c,[],[],[],options);
 

@@ -34,8 +34,8 @@ h_wait = waitbar(0,'please wait');
 % Number of data sets for simulation
 data_number         = 1;    % up to 100
 % Perturbation amplitude
-per_type            = 3;    % 1. sinuoid perturbation 2. small brake perturbation 3. large brake perturbation
-                            % 4. larger brake perturbation
+per_type            = 0;    % 0. no perturbation 1. sinuoid perturbation 2. small brake perturbation
+                            % 3. large brake perturbation 4. larger brake perturbation
                             % 5. Perturbation on a vehicle in the middle of the platoon
 sine_amp            = 4; % amplitidue of sinuoid perturbation
 brake_amp           = 5; % brake amplitude of brake perturbation
@@ -48,8 +48,8 @@ hdv_type            = 1;    % 1. OVM   2. IDM
 acel_noise          = 0.1;  % A white noise signal on HDV's original acceleration
 
 % Parameters in Simulation
-total_time          = 200;              % Total Simulation Time
-Tstep               = 0.05;             % Time Step
+total_time          = 100;              % Total Simulation Time, 200
+Tstep               = 0.1;              % Time Step, 0.05
 total_time_step     = total_time / Tstep;
 
 % Index for one experiment
@@ -337,7 +337,7 @@ for i_data = 1:data_number
 
         % One-step formulation
         u1(:,k) = u1_opt(1:m1_ctr,1);
-        u2(:,k) = u2_opt(1:m1_ctr,1);
+        u2(:,k) = u2_opt(1:m2_ctr,1);
         % Update accleration for the CAV
         S1(k,Omega1_c+1,3)   = u1(:,k);
         S2(k,Omega2_c+1,3)   = u2(:,k);
@@ -362,6 +362,11 @@ for i_data = 1:data_number
         % Perturbation for the head vehicle
         % -------------
         switch per_type
+            case 0
+                S1(k+1,1,2) = v_star;
+                S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);
+                S2(k+1,1,2) = v_star;
+                S2(k+1,:,1) = S2(k,:,1) + Tstep*S2(k,:,2);
             case 1
                 S1(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
                 S1(k+1,:,1) = S1(k,:,1) + Tstep*S1(k,:,2);

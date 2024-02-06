@@ -34,8 +34,8 @@ h_wait = waitbar(0,'please wait');
 % Number of data sets for simulation
 data_number         = 1;    % up to 100
 % Perturbation amplitude
-per_type            = 3;    % 1. sinuoid perturbation 2. small brake perturbation 3. large brake perturbation
-                            % 4. larger brake perturbation
+per_type            = 0;    % 0. no perturbation 1. sinuoid perturbation 2. small brake perturbation
+                            % 3. large brake perturbation 4. larger brake perturbation
                             % 5. Perturbation on a vehicle in the middle of the platoon
 sine_amp            = 4; % amplitidue of sinuoid perturbation
 brake_amp           = 5; % brake amplitude of brake perturbation
@@ -48,8 +48,8 @@ hdv_type            = 1;    % 1. OVM   2. IDM
 acel_noise          = 0.1;  % A white noise signal on HDV's original acceleration
 
 % Parameters in Simulation
-total_time          = 200;              % Total Simulation Time
-Tstep               = 0.05;             % Time Step
+total_time          = 100;              % Total Simulation Time
+Tstep               = 0.1;              % Time Step
 total_time_step     = total_time / Tstep;
 
 % Index for one experiment
@@ -65,7 +65,7 @@ Tini                = 20;        % length of past data
 N                   = 50;        % length of predicted horizon
 
 % Weight coefficients
-weight_choice       = 3;
+weight_choice       = 1;
 % case for weight choice in centralized DeeP-LCC
 
 switch weight_choice
@@ -87,6 +87,12 @@ switch weight_choice
         weight_u     = 0.1;      % weight coefficient for control input
         lambda_g     = 50;       % penalty on ||g||_2^2 in objective
         lambda_y     = 1e4;      % penalty on ||sigma_y||_2^2 in objective
+ case 4
+        weight_v     = 1;        % weight coefficient for velocity error
+        weight_s     = 0.5;      % weight coefficient for spacing error
+        weight_u     = 0.1;      % weight coefficient for control input
+        lambda_g     = 0;       % penalty on ||g||_2^2 in objective
+        lambda_y     = 0;      % penalty on ||sigma_y||_2^2 in objective
 end
 
 % ------------------------------------------
@@ -183,9 +189,10 @@ for i_data = 1:data_number
     % -----------------
     ud  = [ud1; ud2];
     ed  = ed1;
-    yd  = [yd1; yd2];
+    yd  = [yd1(1:n1, :); yd2(1:n2, :);...
+           yd1(n1+1:end, :); yd2(n2+1:end, :)];
     
-    cd  = ed2 - yd1(end, :);
+    cd  = ed2 - yd1(n1, :);
     
     U   = hankel_matrix(ud, Tini + N);
     Up  = U(1:Tini * m_ctr,:);
@@ -254,9 +261,10 @@ for i_data = 1:data_number
              - acel_noise + 2*acel_noise*rand(n,1);
 
         S(k,2:end,3) = acel;     % all the vehicles using HDV model
-
+        %[u_opt,y_opt,pr] = DeeP_LCC_2(Up,Yp,Uf,Yf,Ep,Ef,C,uini,yini,eini,Q,R,r(:,k:k+N-1),...
+        %                   lambda_g,lambda_y,u_limit,s_limit);
         [u_opt,y_opt,pr] = DeeP_LCC_2(Up,Yp,Uf,Yf,Ep,Ef,C,uini,yini,eini,Q,R,r(:,k:k+N-1),...
-                           lambda_g,lambda_y,u_limit,s_limit);
+                           lambda_g,lambda_y);
         toc
         computation_time(k) = toc;
 
@@ -278,6 +286,9 @@ for i_data = 1:data_number
         % Perturbation for the head vehicle
         % -------------
         switch per_type
+            case 0
+                S(k+1,1,2) = v_star;
+                S(k+1,:,1) = S(k,:,1) + Tstep*S(k,:,2);
             case 1
                 S(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
                 S(k+1,:,1) = S(k,:,1) + Tstep*S(k,:,2);

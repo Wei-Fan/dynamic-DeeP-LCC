@@ -34,8 +34,8 @@ h_wait = waitbar(0,'please wait');
 % Number of data sets for simulation
 data_number         = 1;    % up to 100
 % Perturbation amplitude
-per_type            = 3;    % 1. sinuoid perturbation 2. small brake perturbation 3. large brake perturbation
-                            % 4. larger brake perturbation
+per_type            = 0;    % 0. no perturbation 1. sinuoid perturbation 2. small brake perturbation
+                            % 3. large brake perturbation 4. larger brake perturbation
                             % 5. Perturbation on a vehicle in the middle of the platoon
 sine_amp            = 4; % amplitidue of sinuoid perturbation
 brake_amp           = 5; % brake amplitude of brake perturbation
@@ -48,8 +48,8 @@ hdv_type            = 1;    % 1. OVM   2. IDM
 acel_noise          = 0.1;  % A white noise signal on HDV's original acceleration
 
 % Parameters in Simulation
-total_time          = 200;              % Total Simulation Time
-Tstep               = 0.05;             % Time Step
+total_time          = 100;              % Total Simulation Time
+Tstep               = 0.1;              % Time Step
 total_time_step     = total_time / Tstep;
 
 % Index for one experiment
@@ -384,6 +384,12 @@ for i_data = 1:data_number
         % Perturbation for the head vehicle
         % -------------
         switch per_type
+            case 0
+                Sa(k+1,1,2) = v_star;
+                Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);
+
+                Sb(k+1,1,2) = v_star;
+                Sb(k+1,:,1) = Sb(k,:,1) + Tstep*Sb(k,:,2);
             case 1
                 Sa(k+1,1,2) = v_star + sine_amp*sin(2*pi/(10/Tstep)*(k-Tini));
                 Sa(k+1,:,1) = Sa(k,:,1) + Tstep*Sa(k,:,2);

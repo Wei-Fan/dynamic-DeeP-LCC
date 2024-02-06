@@ -24,7 +24,7 @@ total_time_step  = total_time / Tstep;
 % DeeP-LCC Parameters
 % ------------------------------------------
 % T       = 1200;      % length of data samples
-T               = 600;       % Second choise
+T               = 10000;       % Second choise
 
 Tini            = 20;        % length of past data
 N               = 50;        % length of predicted horizon
